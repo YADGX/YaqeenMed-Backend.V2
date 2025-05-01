@@ -1,0 +1,5 @@
+CREATE DATABASE yaqeenmed_dbv2;
+
+CREATE USER yaqeen_user WITH PASSWORD 'Yad14232002?';
+
+GRANT ALL PRIVILEGES ON DATABASE yaqeenmed_dbv2 TO yaqeen_user;
