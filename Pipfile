@@ -7,6 +7,7 @@ name = "pypi"
 django = "*"
 psycopg2-binary = "*"
 djangorestframework = "*"
+python-decouple = "*"
 
 [dev-packages]
 
