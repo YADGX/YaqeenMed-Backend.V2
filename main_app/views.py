@@ -3,6 +3,33 @@ from .models import Patient, Doctor, Issue, Document, Comment
 from .serializers import (PatientSerializer, DoctorSerializer,IssueSerializer, DocumentSerializer, CommentSerializer)
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer
+from django.http import HttpResponse
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import RegisterSerializer
+
+
+
+class RegisterView(APIView):
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            role = request.data.get('role', '').upper()
+            
+            if role == 'PATIENT':
+                Patient.objects.create(user=user)
+            elif role == 'DOCTOR':
+                Doctor.objects.create(user=user)
+            
+            return Response({'message': 'User registered successfully!'}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def index(request):
+    return HttpResponse("Welcome to the YaqeenMed API!")
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
