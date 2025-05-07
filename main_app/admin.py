@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Patient, Doctor, Issue, Document, Comment
+from .models import *
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -14,6 +14,13 @@ class PatientAdmin(admin.ModelAdmin):
     list_select_related = ('user',)
     search_fields = ('user__username', 'user__first_name', 'user__last_name')
     ordering = ('user__last_name',)  # Orders by patient's last name
+    readonly_fields = ('user',)  # Make 'user' field read-only
+
+    class IssueInline(admin.TabularInline):
+        model = Issue
+        extra = 0  # No extra empty fields when adding issues
+
+    inlines = [IssueInline]
 
 @admin.register(Doctor)
 class DoctorAdmin(admin.ModelAdmin):
@@ -21,6 +28,14 @@ class DoctorAdmin(admin.ModelAdmin):
     list_filter = ('specialty',)
     search_fields = ('user__username', 'user__first_name', 'user__last_name', 'license_number')
     ordering = ('user__last_name',)  # Orders by doctor's last name
+    readonly_fields = ('user',)  # Make 'user' field read-only
+
+    # Inline model for Issues related to the doctor
+    class IssueInline(admin.TabularInline):
+        model = Issue
+        extra = 0  # No extra empty fields when adding issues
+
+    inlines = [IssueInline]
 
 @admin.register(Issue)
 class IssueAdmin(admin.ModelAdmin):
@@ -28,6 +43,13 @@ class IssueAdmin(admin.ModelAdmin):
     list_filter = ('status', 'created_at', 'updated_at')
     search_fields = ('title', 'patient__user__username', 'doctor__user__username')
     ordering = ('-created_at',)  # Orders by the latest created issue
+
+    # Optionally, add bulk actions
+    actions = ['mark_as_resolved']
+
+    def mark_as_resolved(self, request, queryset):
+        queryset.update(status='Resolved')
+    mark_as_resolved.short_description = "Mark selected issues as resolved"
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
@@ -42,3 +64,5 @@ class CommentAdmin(admin.ModelAdmin):
     list_filter = ('created_at', 'updated_at')
     search_fields = ('issue__title', 'author__username')
     ordering = ('-created_at',)  # Orders by the latest created comment
+
+admin.site.register(PatientRequest)
