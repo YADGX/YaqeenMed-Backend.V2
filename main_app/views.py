@@ -152,79 +152,30 @@ class CommentDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import PatientRequest
-from .serializers import PatientRequestSerializer
-
 class PatientRequestCreate(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        try:
-            # Check if the user is a doctor
-            if request.user.role == 'doctor':
-                # If the user is a doctor, fetch all requests
-                patient_requests = PatientRequest.objects.all()
-            else:
-                # If the user is a patient, fetch only the requests for that patient
-                patient_requests = PatientRequest.objects.filter(patient=request.user.patient)
-
-            serializer = PatientRequestSerializer(patient_requests, many=True)
-            return Response(serializer.data)
-
-        except Exception as err:
-            return Response({'error': str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def post(self, request):
-        try:
-            # Handle patient request creation logic here
-            serializer = PatientRequestSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save(patient=request.user.patient)  # Assign the logged-in user as the patient
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as err:
-            return Response({'error': str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
-class PatientRequestAction(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request):
-        # Fetch all pending patient requests associated with the current doctor
-        patient_requests = PatientRequest.objects.filter(issue__doctor=request.user.doctor, status=PatientRequest.STATUS_PENDING)
+        # Fetch all patient requests associated with the current user
+        patient_requests = PatientRequest.objects.filter(patient=request.user.patient)
         serializer = PatientRequestSerializer(patient_requests, many=True)
         return Response(serializer.data)
 
-    def post(self, request, request_id):
+    def post(self, request):
         try:
-            # Fetch the patient request by ID
-            patient_request = PatientRequest.objects.get(id=request_id)
+            print("REQUEST DATA:   ", request.data)
+            # Serialize the data sent by the user
+            patient = Patient.objects.get(user=request.user)
+            serializer = PatientRequestSerializer(data=request.data)
+            if serializer.is_valid():
+                # Attach the patient to the request directly (done in the serializer)
+                serializer.save(patient=patient)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # Print serializer errors for debugging
+            print("SERIALIZER ERRORS:   ", serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as err:
+            print("EXCEPTION:   ", err)
+            return Response({'error': str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # Ensure that the doctor can only handle the request (only accept/decline)
-            if patient_request.status != PatientRequest.STATUS_PENDING:
-                return Response({'error': 'This request has already been handled.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Check the action to perform (Accept or Decline)
-            action = request.data.get('action')
-
-            if action == 'accept':
-                patient_request.status = PatientRequest.STATUS_ACCEPTED
-                patient_request.doctor = request.user.doctor  # Assign doctor to the request
-                patient_request.save()
-
-                return Response({'message': 'Request accepted successfully.'}, status=status.HTTP_200_OK)
-
-            elif action == 'decline':
-                patient_request.status = PatientRequest.STATUS_DECLINED
-                patient_request.save()
-
-                return Response({'message': 'Request declined successfully.'}, status=status.HTTP_200_OK)
-
-            return Response({'error': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        except PatientRequest.DoesNotExist:
-            return Response({'error': 'Request not found.'}, status=status.HTTP_404_NOT_FOUND)

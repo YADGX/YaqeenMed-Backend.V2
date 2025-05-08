@@ -18,6 +18,4 @@ urlpatterns = [
     path('comments/', views.CommentList.as_view(), name='comment-list'),
     path('comments/<int:pk>/', views.CommentDetail.as_view(), name='comment-detail'),
     path('patient-requests/', views.PatientRequestCreate.as_view(), name='patient-request-create'),
-    path('api/patient-requests/', views.PatientRequestAction.as_view(), name='get_patient_requests'),  # To get the list of patient requests
-    path('api/patient-requests/<int:request_id>/action/', views.PatientRequestAction.as_view(), name='handle_patient_request'),  # To handle actions (accept/decline) for a specific request
 ]
